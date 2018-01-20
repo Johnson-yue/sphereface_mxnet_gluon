@@ -98,7 +98,7 @@ class AngleLinear(gluon.nn.HybridBlock):
             ]
             self.cnt=0
 
-    def hybrid_forward(self, F, x, weight):#x(B,in)
+    def hybrid_forward(self, F, x, weight=None):#x(B,in)
         if self.cnt==0:
             self.in_unit=x.shape[1]
             with self.name_scope():
@@ -107,7 +107,10 @@ class AngleLinear(gluon.nn.HybridBlock):
             self.cnt+=1
 
         # norm weight
-        w = weight
+        if weight is None:
+            w = self.weight.data()
+        else:
+            w = weight
         # w = self.weight.data()#w(in,out)
         w_norm = F.sqrt(F.sum(F.square(w + 1e-6), axis=0)).reshape((1, self.unit))
         x_norm = F.sqrt(F.sum(F.square(x + 1e-6), axis=1)).reshape((-1, 1))
@@ -124,9 +127,10 @@ class AngleLinear(gluon.nn.HybridBlock):
 
         cos_m_theta=self.mlambda[self.m](cos_theta)
         theta = F.arccos(cos_theta)
-        k=F.floor(self.m*theta/np.pi)
+        k=np.floor(self.m*theta.asnumpy()/np.pi)
         n_one=-1.0
-        phi_theta=(n_one**k)*cos_m_theta-2*k
+        k_nd = F.array(k)
+        phi_theta=(n_one**k_nd)*cos_m_theta-2*k_nd
 
         cos_theta = F.broadcast_mul(cos_theta,x_norm)
         phi_theta = F.broadcast_mul(phi_theta,x_norm)
